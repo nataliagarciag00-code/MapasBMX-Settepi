@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>LOGISTICA - MAPEO RUTAS</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root { 
+            --blue-settepi: #00529b; 
+            --yellow-settepi: #ffcb05; 
+            --blue-dark: #0d1b2a; 
+            --blue-navy: #1b263b;
+            --blue-royal: #415a77;
+            --blue-light: #e3f2fd; 
+            --accent-blue: #00b4d8;
+            --verde-excel: #2d6a4f;
+            --naranja-pdf: #e67e22;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f0f2f5; 
+            margin: 0; padding: 20px; color: var(--blue-dark);
+        }
+
+        .no-print-panel { 
+            background: var(--blue-settepi); color: white; padding: 20px; 
+            margin-bottom: 25px; border-radius: 15px; display: flex; 
+            gap: 20px; flex-wrap: wrap; align-items: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            border-bottom: 5px solid var(--yellow-settepi);
+        }
+
+        .report-page { 
+            max-width: 1300px; margin: auto; background: white; padding: 40px; 
+            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border-top: 8px solid var(--blue-settepi);
+        }
+
+        .header-main { 
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid #edf2f4; padding-bottom: 20px; margin-bottom: 30px;
+        }
+
+        .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; flex-grow: 1; }
+        .field { background: var(--blue-light); padding: 10px; border-radius: 8px; border-left: 4px solid var(--yellow-settepi); }
+        .field b { color: var(--blue-settepi); text-transform: uppercase; font-size: 10px; display: block; margin-bottom: 3px; }
+        .field span { font-size: 14px; font-weight: 700; }
+
+        .editable { border-bottom: 1px dashed #ced4da; outline: none; }
+        .editable:focus { background: #fff; border-bottom: 1px solid var(--accent-blue); }
+
+        #map { height: 550px; width: 100%; border-radius: 12px; margin: 20px 0; border: 1px solid #ddd; z-index: 1; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+        th { background: var(--blue-settepi); color: white; padding: 12px 8px; text-align: left; text-transform: uppercase; font-size: 10px; border-bottom: 3px solid var(--yellow-settepi); }
+        td { padding: 10px 8px; border-bottom: 1px solid #edf2f4; }
+        tr:nth-child(even) { background-color: #fbfcfd; }
+
+        .summary-footer { 
+            display: flex; justify-content: flex-end; gap: 50px; 
+            background: var(--blue-settepi); color: white; padding: 20px; 
+            margin-top: 20px; border-radius: 10px; font-weight: bold; font-size: 16px;
+            border-top: 4px solid var(--yellow-settepi);
+        }
+
+        .btn { padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; display: flex; align-items: center; gap: 8px; transition: 0.3s; font-size: 12px; }
+        .btn-excel { background: var(--verde-excel); }
+        .btn-pdf { background: var(--naranja-pdf); }
+        .btn-gpx { background: var(--accent-blue); }
+        .btn-ins { background: var(--blue-royal); padding: 2px 6px; border: none; color: white; border-radius: 4px; cursor: pointer; }
+        .btn-del { background: #d90429; padding: 2px 6px; border: none; color: white; border-radius: 4px; cursor: pointer; }
+
+        .logo-box { width: 220px; text-align: right; }
+        #logo-img { max-width: 100%; height: auto; }
+
+        @media print {
+            .no-print-panel, .col-acc, .leaflet-control-container, .btn-ins, .btn-del { display: none !important; }
+            body { background: white; padding: 0; }
+            .report-page { box-shadow: none; border: none; width: 100%; padding: 0; }
+            #map { height: 750px; border: 1px solid #000; }
+        }
+
+        .custom-pin {
+            background-color: var(--blue-settepi); width: 26px; height: 26px;
+            border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg);
+            border: 2px solid var(--yellow-settepi); display: flex; align-items: center; justify-content: center;
+        }
+        .custom-pin span { transform: rotate(45deg); color: white; font-weight: bold; font-size: 11px; }
+    </style>
+</head>
+<body>
+
+    <div class="no-print-panel">
+        <div style="display:flex; flex-direction:column; gap:5px;">
+            <strong style="color:var(--yellow-settepi); font-size: 18px;">LOGISTICA - MAPEO RUTAS</strong>
+        </div>
+        <div style="flex-grow: 1; display: flex; gap: 15px; align-items: center;">
+             <label style="font-size: 12px;">Cargar Nuevo GPX: <input type="file" id="gpx-input" accept=".gpx"></label>
+        </div>
+        <button class="btn btn-excel" onclick="exportToExcel()">📊 EXCEL</button>
+        <button class="btn btn-pdf" onclick="window.print()">📄 PDF</button>
+        <button class="btn btn-gpx" onclick="descargarGPXEditado()">💾 GUARDAR CAMBIOS</button>
+    </div>
+
+    <div class="report-page">
+        <div class="header-main">
+            <div class="info-grid">
+                <div class="field"><b>Nombre Ruta</b> <span id="route-name" class="editable" contenteditable="true">Ruta Corregida</span></div>
+                <div class="field"><b>Unidad</b> <span id="unit-name" class="editable" contenteditable="true">---</span></div>
+                <div class="field"><b>Cultivo</b> <span id="crop-name" class="editable" contenteditable="true">---</span></div>
+                <div class="field"><b>Fecha</b> <span id="date-obs" class="editable" contenteditable="true">20/02/2026</span></div>
+                <div class="field"><b>Distancia Total</b> <span id="top-dist" style="color:var(--blue-settepi)">0.00 km</span></div>
+                <div class="field"><b>Tiempo Total</b> <span id="top-time" style="color:var(--blue-settepi)">0h 0m</span></div>
+                <div class="field"><b>Total Paradas</b> <span id="total-paradas" style="color:var(--blue-settepi)">0</span></div>
+                <div class="field"><b>Horario Ruta</b> <span id="horario-ruta" style="color:var(--blue-settepi)">--:-- - --:--</span></div>
+            </div>
+            <div class="logo-box">
+                <img id="logo-img" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMTAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0ibm9uZSIvPjx0ZXh0IHg9IjIwIiB5PSI3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjYwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzAwNTI5YiI+U0VUVEVQSTwvdGV4dD48cmVjdCB4PSIyMCIgeT0iODAiIHdpZHRoPSIzNjAiIGhlaWdodD0iMTAiIGZpbGw9IiNmZmNiMDUiLz48L3N2Zz4=" alt="Settepi Logo">
+            </div>
+        </div>
+
+        <div id="map"></div>
+
+        <table id="report-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Referencia</th>
+                    <th>Hora (Editar)</th>
+                    <th>T. Tramo</th>
+                    <th>T. Acum</th>
+                    <th>D. Tramo</th>
+                    <th>D. Acum</th>
+                    <th>Coordenadas</th>
+                    <th class="col-acc">Acción</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+
+        <div class="summary-footer">
+            <div>TOTAL KM: <span id="bot-dist">0.00 km</span></div>
+            <div>TOTAL TIEMPO: <span id="bot-time">0h 0m</span></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map, layers, puntosData = [], r_coords = [];
+
+        // Capas con nombres de calles
+        const googleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Google' });
+        const googleHybrid = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Google' });
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+
+        // DATOS DEL GPX INYECTADOS
+        const rawWpts = [
+            {lat: 30.51156215, lon: -115.96154268, name: "COLONIA MIRASOL", time: "2026-02-20T13:30:28Z"},
+            {lat: 30.51557452, lon: -115.94462134, name: "PINOS MADRID 2", time: "2026-02-20T13:37:18Z"},
+            {lat: 30.51706821, lon: -115.93781712, name: "ESQUINA CECYTE", time: "2026-02-20T13:40:13Z"},
+            {lat: 30.51763421, lon: -115.93531519, name: "Esquina Miges", time: "2026-02-20T13:42:20Z"},
+            {lat: 30.51817675, lon: -115.93294293, name: "BAHIA DEL ROSARIO", time: "2026-02-20T13:43:20Z"},
+            {lat: 30.51509177, lon: -115.9322254, name: "CAMPO EL MILAGRO", time: "2026-02-20T13:44:17Z"},
+            {lat: 30.51264119, lon: -115.9317544, name: "CONVIVE", time: "2026-02-20T13:45:04Z"},
+            {lat: 30.50970146, lon: -115.9311442, name: "ESQUINA LUNA", time: "2026-02-20T13:46:11Z"},
+            {lat: 30.49988188, lon: -115.92886367, name: "VILLA DE SAN QUINTIN", time: "2026-02-20T13:48:47Z"},
+            {lat: 30.49651719, lon: -115.92723326, name: "EL SAUZ", time: "2026-02-20T13:50:39Z"},
+            {lat: 30.49392271, lon: -115.92484042, name: "MACLOVIO ROJAS", time: "2026-02-20T13:53:57Z"},
+            {lat: 30.48529329, lon: -115.92182055, name: "REFORMA", time: "2026-02-20T13:58:36Z"},
+            {lat: 30.47355106, lon: -115.92025777, name: "TRECE DE MAYO", time: "2026-02-20T14:02:15Z"},
+            {lat: 30.46823337, lon: -115.9203957, name: "ESTACION DE BOMBEROS", time: "2026-02-20T14:03:55Z"},
+            {lat: 30.45788107, lon: -115.92209144, name: "GOMEZ FARIAS", time: "2026-02-20T14:07:03Z"},
+            {lat: 30.4533088, lon: -115.92318412, name: "RANCHO LOS PINOS", time: "2026-02-20T14:08:29Z"},
+            {lat: 30.44917637, lon: -115.92429452, name: "LA CALI", time: "2026-02-20T14:09:44Z"},
+            {lat: 30.44317188, lon: -115.9252033, name: "PARQUE LA CALI", time: "2026-02-20T14:11:06Z"},
+            {lat: 30.43577319, lon: -115.92617635, name: "EL TRIANGULO", time: "2026-02-20T14:13:03Z"},
+            {lat: 30.42857417, lon: -115.92721867, name: "NUEVA ERA", time: "2026-02-20T14:15:33Z"},
+            {lat: 30.42621455, lon: -115.9255776, name: "EL PAPALOTE", time: "2026-02-20T14:16:47Z"},
+            {lat: 30.42531362, lon: -115.92138927, name: "LOS MEZQUITES", time: "2026-02-20T14:18:24Z"},
+            {lat: 30.41738734, lon: -115.92187652, name: "RANCHO SAN FERMIN", time: "2026-02-20T14:21:40Z"}
+        ];
+
+        function initMap() {
+            map = L.map('map', { center: [30.45, -115.93], zoom: 12, layers: [googleStreets] });
+            L.control.layers({"Google Calles": googleStreets, "Google Híbrido": googleHybrid, "OSM": osm}).addTo(map);
+            layers = L.featureGroup().addTo(map);
+            
+            // Cargar datos inyectados
+            puntosData = rawWpts.map(w => ({
+                name: w.name,
+                time: new Date(w.time).getTime(),
+                coords: [w.lat, w.lon]
+            }));
+            
+            actualizarUI();
+        }
+
+        function actualizarUI() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = "";
+            let dAcum = 0;
+            layers.clearLayers();
+
+            puntosData.forEach((p, i) => {
+                const num = i + 1;
+                const hDisp = new Date(p.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true});
+                let dTr = i > 0 ? calcD(puntosData[i-1].coords, p.coords) : 0;
+                dAcum += dTr;
+                
+                let tTramo = i > 0 ? difT(puntosData[i-1].time, p.time) : "---";
+                let tAcum = i > 0 ? difT(puntosData[0].time, p.time) : "0m";
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><b>${num}</b></td>
+                        <td contenteditable="true" onblur="puntosData[${i}].name=this.innerText">${p.name}</td>
+                        <td contenteditable="true" onblur="updateTimeCascada(${i}, this.innerText)" style="color:var(--blue-settepi); font-weight:bold">${hDisp}</td>
+                        <td>${tTramo}</td>
+                        <td>${tAcum}</td>
+                        <td>${dTr.toFixed(2)} km</td>
+                        <td><b>${dAcum.toFixed(2)} km</b></td>
+                        <td style="color:#888; font-size:9px">${p.coords[0].toFixed(5)}, ${p.coords[1].toFixed(5)}</td>
+                        <td class="col-acc">
+                            <button class="btn-ins" onclick="insertar(${i})">+</button>
+                            <button class="btn-del" onclick="eliminar(${i})">✖</button>
+                        </td>
+                    </tr>`;
+                
+                L.marker(p.coords, {
+                    icon: L.divIcon({
+                        className: '',
+                        html: `<div class="custom-pin"><span>${num}</span></div>`,
+                        iconAnchor: [13, 26]
+                    })
+                }).addTo(layers);
+            });
+
+            if(puntosData.length > 1) {
+                L.polyline(puntosData.map(p => p.coords), {color: '#00529b', weight: 4}).addTo(layers);
+            }
+
+            document.getElementById('top-dist').innerText = dAcum.toFixed(2) + " km";
+            document.getElementById('bot-dist').innerText = dAcum.toFixed(2) + " km";
+            document.getElementById('total-paradas').innerText = puntosData.length;
+            
+            let tTotal = difT(puntosData[0].time, puntosData[puntosData.length-1].time);
+            document.getElementById('top-time').innerText = tTotal;
+            document.getElementById('bot-time').innerText = tTotal;
+            
+            let hIni = new Date(puntosData[0].time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true});
+            let hFin = new Date(puntosData[puntosData.length-1].time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true});
+            document.getElementById('horario-ruta').innerText = hIni + " - " + hFin;
+
+            if(layers.getBounds().isValid()) map.fitBounds(layers.getBounds().pad(0.1));
+        }
+
+        function difT(t1, t2) {
+            let d = t2 - t1;
+            let totalMins = Math.round(d / 60000);
+            let h = Math.floor(totalMins / 60);
+            let m = totalMins % 60;
+            return h > 0 ? `${h}h ${m}m` : `${m}m`;
+        }
+
+        function calcD(c1, c2) {
+            const R = 6371;
+            const dLat = (c2[0]-c1[0]) * Math.PI / 180;
+            const dLon = (c2[1]-c1[1]) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(c1[0]*Math.PI/180) * Math.cos(c2[0]*Math.PI/180) * Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function updateTimeCascada(idx, newStr) {
+            let timeMatch = newStr.match(/(\d+):(\d+)/);
+            if(!timeMatch) return;
+            let hours = parseInt(timeMatch[1]);
+            let mins = parseInt(timeMatch[2]);
+            if(newStr.toLowerCase().includes('p') && hours < 12) hours += 12;
+            if(newStr.toLowerCase().includes('a') && hours === 12) hours = 0;
+            let newDate = new Date(puntosData[idx].time);
+            newDate.setHours(hours, mins);
+            let diff = newDate.getTime() - puntosData[idx].time;
+            for (let i = idx; i < puntosData.length; i++) puntosData[i].time += diff;
+            actualizarUI();
+        }
+
+        function insertar(idx) {
+            let nuevo = JSON.parse(JSON.stringify(puntosData[idx]));
+            nuevo.time += 60000;
+            puntosData.splice(idx+1, 0, nuevo);
+            actualizarUI();
+        }
+        function eliminar(idx) { if(puntosData.length>1) { puntosData.splice(idx,1); actualizarUI(); } }
+
+        function exportToExcel() {
+            let table = document.getElementById("report-table").cloneNode(true);
+            table.querySelectorAll('.col-acc').forEach(e => e.remove());
+            let html = `<html><meta charset="utf-8"><body>${table.outerHTML}</body></html>`;
+            window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+        }
+
+        function descargarGPXEditado() {
+            let gpx = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1">`;
+            puntosData.forEach(p => {
+                gpx += `\n<wpt lat="${p.coords[0]}" lon="${p.coords[1]}"><name>${p.name}</name><time>${new Date(p.time).toISOString()}</time></wpt>`;
+            });
+            gpx += `\n</gpx>`;
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([gpx], {type: 'application/gpx+xml'}));
+            a.download = "Ruta_Corregida_Actualizada.gpx";
+            a.click();
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+</html>
