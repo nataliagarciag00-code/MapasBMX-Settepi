@@ -2,151 +2,105 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Ruta Real - Settepi</title>
+    <title>Reporte de Ruta Oficial - Settepi</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --blue-settepi: #00529b; --yellow-settepi: #ffcb05; --blue-light: #f0f7ff; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f9; margin: 0; padding: 20px; }
-        
-        /* Panel de solo lectura */
-        .no-print-panel { 
-            background: var(--blue-settepi); color: white; padding: 15px 25px; 
-            border-radius: 12px; display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; border-bottom: 4px solid var(--yellow-settepi);
-        }
-        
-        .report-container { 
-            max-width: 1150px; margin: auto; background: white; padding: 30px; 
-            border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-        }
-
-        .header-info { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
-        .info-card { background: var(--blue-light); padding: 12px; border-radius: 8px; border-left: 5px solid var(--blue-settepi); }
-        .info-card label { display: block; font-size: 11px; color: #666; font-weight: bold; text-transform: uppercase; }
-        .info-card span { font-size: 15px; font-weight: bold; color: var(--blue-settepi); }
-
-        #map { height: 550px; width: 100%; border-radius: 12px; border: 2px solid #ddd; margin-bottom: 25px; }
-
-        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
-        th { background: var(--blue-settepi); color: white; padding: 12px; text-align: left; text-transform: uppercase; }
-        td { padding: 10px; border-bottom: 1px solid #eee; color: #333; }
-        tr:nth-child(even) { background: #fafafa; }
-        
-        .pin-number {
-            background: var(--blue-settepi); border: 2px solid white; border-radius: 50%;
-            color: white; font-weight: bold; text-align: center; line-height: 20px; font-size: 11px;
-        }
-
-        @media print {
-            .no-print-panel { display: none; }
-            body { background: white; padding: 0; }
-            .report-container { box-shadow: none; width: 100%; max-width: 100%; }
-        }
+        :root { --blue-s: #00529b; --yellow-s: #ffcb05; --bg: #f4f7f9; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .no-print { background: var(--blue-s); color: white; padding: 15px; display: flex; justify-content: space-between; border-radius: 10px; margin-bottom: 20px; border-bottom: 4px solid var(--yellow-s); }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+        .card { background: #e3f2fd; padding: 10px; border-radius: 8px; border-left: 4px solid var(--blue-s); }
+        .card b { display: block; font-size: 10px; color: #555; text-transform: uppercase; }
+        .card span { font-weight: bold; color: var(--blue-s); }
+        #map { height: 500px; width: 100%; border-radius: 10px; border: 1px solid #ccc; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { background: var(--blue-s); color: white; padding: 10px; text-align: left; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .pin { background: var(--blue-s); color: white; border: 2px solid white; border-radius: 50%; text-align: center; font-size: 10px; font-weight: bold; line-height: 20px; }
+        @media print { .no-print { display: none; } .container { box-shadow: none; padding: 0; } }
     </style>
 </head>
 <body>
 
-    <div class="no-print-panel">
-        <span style="font-size: 20px; font-weight: bold;">LOGÍSTICA SETTEPI: RECORRIDO OFICIAL</span>
-        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer; font-weight: bold; border-radius: 5px; border: none;">🖨️ IMPRIMIR REPORTE</button>
+<div class="no-print">
+    <b>LOGÍSTICA SETTEPI - RECORRIDO INFORMATIVO</b>
+    <button onclick="window.print()" style="cursor:pointer; font-weight:bold;">📄 GENERAR PDF</button>
+</div>
+
+<div class="container">
+    <div class="header">
+        <div class="card"><b>Ruta</b><span>Col. Mirasol - San Fermín</span></div>
+        <div class="card"><b>Distancia</b><span>22.18 km</span></div>
+        <div class="card"><b>Tiempo</b><span>1h 28m</span></div>
+        <div class="card"><b>Paradas</b><span>23</span></div>
     </div>
 
-    <div class="report-container">
-        <div class="header-info">
-            <div class="info-card"><label>Ruta</label><span>Col. Mirasol - San Simón</span></div>
-            <div class="info-card"><label>Distancia</label><span>22.18 KM</span></div>
-            <div class="info-card"><label>Tiempo Estimado</label><span>1h 28m</span></div>
-            <div class="info-card"><label>Estatus</label><span style="color: green;">✓ ACTIVA</span></div>
-        </div>
+    <div id="map"></div>
 
-        <div id="map"></div>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Referencia</th>
+                <th>Hora</th>
+                <th>T. Tramo</th>
+                <th>D. Acum</th>
+                <th>Coordenadas</th>
+            </tr>
+        </thead>
+        <tbody id="tabla"></tbody>
+    </table>
+</div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Punto de Referencia</th>
-                    <th>Horario</th>
-                    <th>T. Tramo</th>
-                    <th>Dist. Acum.</th>
-                    <th>Coordenadas</th>
-                </tr>
-            </thead>
-            <tbody id="tabla-puntos"></tbody>
-        </table>
-    </div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const data = [
+        {id:1, n:"COLONIA MIRASOL", h:"05:30 AM", tt:"---", da:"0.00 km", lat:30.51156, lon:-115.96154},
+        {id:2, n:"PINOS MADRID 2", h:"05:37 AM", tt:"7m", da:"1.68 km", lat:30.51557, lon:-115.94462},
+        {id:3, n:"ESQUINA CECYTE", h:"05:40 AM", tt:"3m", da:"2.35 km", lat:30.51707, lon:-115.93782},
+        {id:4, n:"ESQUINA MIGES", h:"05:42 AM", tt:"2m", da:"2.60 km", lat:30.51763, lon:-115.93532},
+        {id:5, n:"BAHIA DEL ROSARIO", h:"05:43 AM", tt:"1m", da:"2.84 km", lat:30.51818, lon:-115.93294},
+        {id:6, n:"ESQUINA CHONTAL", h:"05:45 AM", tt:"2m", da:"3.08 km", lat:30.51875, lon:-115.93045},
+        {id:7, n:"CAPILLA JUAN PABLO", h:"05:54 AM", tt:"9m", da:"5.35 km", lat:30.50907, lon:-115.90968},
+        {id:8, n:"ESQ. CALLE CALAMAR", h:"05:56 AM", tt:"2m", da:"5.63 km", lat:30.50849, lon:-115.91259},
+        {id:9, n:"CALLE DEL ATUN", h:"05:57 AM", tt:"1m", da:"5.73 km", lat:30.50828, lon:-115.91357},
+        {id:10, n:"CANCHAS FUTBOL", h:"05:58 AM", tt:"2m", da:"5.97 km", lat:30.50770, lon:-115.91600},
+        {id:11, n:"MURAL BUDLIGHT", h:"06:02 AM", tt:"3m", da:"6.58 km", lat:30.50628, lon:-115.92217},
+        {id:12, n:"OXXO FRESERO", h:"06:03 AM", tt:"1m", da:"6.82 km", lat:30.50574, lon:-115.92454},
+        {id:13, n:"ENTRADA RANCHO SAN SIMON", h:"06:21 AM", tt:"18m", da:"17.10 km", lat:30.41640, lon:-115.89700},
+        {id:14, n:"BAJADA PERSONAL SKY", h:"06:24 AM", tt:"3m", da:"17.39 km", lat:30.41681, lon:-115.89401},
+        {id:15, n:"SAN SIMON ARÁNDANOS", h:"06:31 AM", tt:"7m", da:"18.78 km", lat:30.42810, lon:-115.90039},
+        {id:16, n:"BAJADA ARÁNDANOS", h:"06:35 AM", tt:"4m", da:"19.06 km", lat:30.42882, lon:-115.89761},
+        {id:17, n:"COMEDOR MISAEL", h:"06:42 AM", tt:"7m", da:"19.88 km", lat:30.42446, lon:-115.90453},
+        {id:18, n:"COMEDOR OLIVER", h:"06:44 AM", tt:"2m", da:"20.15 km", lat:30.42218, lon:-115.90378},
+        {id:19, n:"OFICINA YURAWE", h:"06:45 AM", tt:"1m", da:"20.31 km", lat:30.42172, lon:-115.90537},
+        {id:20, n:"COMEDOR BRYAN", h:"06:48 AM", tt:"3m", da:"20.87 km", lat:30.42041, lon:-115.91108},
+        {id:21, n:"COMEDOR NANCY", h:"06:50 AM", tt:"2m", da:"21.15 km", lat:30.41976, lon:-115.91390},
+        {id:22, n:"COMEDOR SANTIAGO", h:"06:53 AM", tt:"3m", da:"21.53 km", lat:30.42067, lon:-115.91767},
+        {id:23, n:"COMEDOR RENTERIA", h:"06:58 AM", tt:"5m", da:"22.18 km", lat:30.41635, lon:-115.92222}
+    ];
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        const puntos = [
-            {id:1, name:"COLONIA MIRASOL", h:"05:30 AM", tt:"---", da:"0.00 km", lat:30.51156, lon:-115.96154},
-            {id:2, name:"PINOS MADRID 2", h:"05:37 AM", tt:"7m", da:"1.68 km", lat:30.51557, lon:-115.94462},
-            {id:3, name:"ESQUINA CECYTE", h:"05:40 AM", tt:"3m", da:"2.35 km", lat:30.51707, lon:-115.93782},
-            {id:4, name:"ESQUINA MIGES", h:"05:42 AM", tt:"2m", da:"2.60 km", lat:30.51763, lon:-115.93532},
-            {id:5, name:"BAHIA DEL ROSARIO", h:"05:43 AM", tt:"1m", da:"2.84 km", lat:30.51818, lon:-115.93294},
-            {id:6, name:"ESQUINA CHONTAL", h:"05:45 AM", tt:"2m", da:"3.08 km", lat:30.51875, lon:-115.93045},
-            {id:7, name:"CALLE BALLENAS ESQ. CAPILLA", h:"05:54 AM", tt:"9m", da:"5.35 km", lat:30.50907, lon:-115.90968},
-            {id:8, name:"ESQUINA CALAMAR CASA AZUL", h:"05:56 AM", tt:"2m", da:"5.63 km", lat:30.50849, lon:-115.91259},
-            {id:9, name:"CALLE DEL ATUN CASA VERDE", h:"05:57 AM", tt:"1m", da:"5.73 km", lat:30.50828, lon:-115.91357},
-            {id:10, name:"CANCHAS FUTBOL", h:"05:58 AM", tt:"2m", da:"5.97 km", lat:30.50770, lon:-115.91600},
-            {id:11, name:"BALDIO MURAL BUDLIGHT", h:"06:02 AM", tt:"3m", da:"6.58 km", lat:30.50628, lon:-115.92217},
-            {id:12, name:"ESQUINA OXXO FRESERO", h:"06:03 AM", tt:"1m", da:"6.82 km", lat:30.50574, lon:-115.92454},
-            {id:13, name:"ENTRADA RANCHO SAN SIMON", h:"06:21 AM", tt:"18m", da:"17.10 km", lat:30.41640, lon:-115.89700},
-            {id:14, name:"BAJADA PERSONAL SKY", h:"06:24 AM", tt:"3m", da:"17.39 km", lat:30.41681, lon:-115.89401},
-            {id:15, name:"SAN SIMON ARÁNDANOS", h:"06:31 AM", tt:"7m", da:"18.78 km", lat:30.42810, lon:-115.90039},
-            {id:16, name:"BAJADA ARÁNDANOS", h:"06:35 AM", tt:"4m", da:"19.06 km", lat:30.42882, lon:-115.89761},
-            {id:17, name:"COMEDOR MISAEL", h:"06:42 AM", tt:"7m", da:"19.88 km", lat:30.42446, lon:-115.90453},
-            {id:18, name:"COMEDOR OLIVER", h:"06:44 AM", tt:"2m", da:"20.15 km", lat:30.42218, lon:-115.90378},
-            {id:19, name:"OFICINA YURAWE", h:"06:45 AM", tt:"1m", da:"20.31 km", lat:30.42172, lon:-115.90537},
-            {id:20, name:"COMEDOR BRYAN", h:"06:48 AM", tt:"3m", da:"20.87 km", lat:30.42041, lon:-115.91108},
-            {id:21, name:"COMEDOR NANCY", h:"06:50 AM", tt:"2m", da:"21.15 km", lat:30.41976, lon:-115.91390},
-            {id:22, name:"COMEDOR SANTIAGO", h:"06:53 AM", tt:"3m", da:"21.53 km", lat:30.42067, lon:-115.91767},
-            {id:23, name:"COMEDOR RICARDO RENTERIA", h:"06:58 AM", tt:"5m", da:"22.18 km", lat:30.41635, lon:-115.92222}
-        ];
+    const map = L.map('map').setView([30.46, -115.93], 12);
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
+        subdomains:['mt0','mt1','mt2','mt3']
+    }).addTo(map);
 
-        // Iniciar mapa con Google Hybrid (Calles + Satélite) para ver el camino real
-        const map = L.map('map').setView([30.46, -115.93], 12);
-        L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-            subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Google Maps'
+    const lista = [];
+    const t = document.getElementById('tabla');
+
+    data.forEach(p => {
+        t.innerHTML += `<tr><td>${p.id}</td><td>${p.n}</td><td><b>${p.h}</b></td><td>${p.tt}</td><td>${p.da}</td><td>${p.lat}, ${p.lon}</td></tr>`;
+        L.marker([p.lat, p.lon], {
+            icon: L.divIcon({ className: 'pin', html: p.id, iconSize: [20, 20] })
         }).addTo(map);
+        lista.push([p.lat, p.lon]);
+    });
 
-        const tabla = document.getElementById('tabla-puntos');
-        const listaCoords = [];
-
-        puntos.forEach(p => {
-            // Llenar Tabla Informativa
-            tabla.innerHTML += `<tr>
-                <td><b>${p.id}</b></td>
-                <td>${p.name}</td>
-                <td style="font-weight:bold; color:var(--blue-settepi)">${p.h}</td>
-                <td>${p.tt}</td>
-                <td>${p.da}</td>
-                <td style="color:#777; font-size:10px;">${p.lat}, ${p.lon}</td>
-            </tr>`;
-
-            // Marcadores en el mapa
-            L.marker([p.lat, p.lon], {
-                icon: L.divIcon({
-                    className: 'pin-number',
-                    html: p.id,
-                    iconSize: [22, 22]
-                })
-            }).addTo(map).bindPopup(`<b>${p.name}</b><br>Hora: ${p.h}`);
-            
-            listaCoords.push([p.lat, p.lon]);
-        });
-
-        // TRAZADO DE RUTA POR CALLES (Routing alternativo para evitar líneas rectas)
-        // Usamos una polilínea azul más gruesa para resaltar el camino principal
-        const polyline = L.polyline(listaCoords, {
-            color: '#00529b',
-            weight: 5,
-            opacity: 0.8,
-            lineJoin: 'round'
-        }).addTo(map);
-
-        map.fitBounds(polyline.getBounds().pad(0.1));
-
-    </script>
+    // Dibujo de polilínea que une los puntos
+    L.polyline(lista, {color: '#00529b', weight: 4}).addTo(map);
+    map.fitBounds(L.polyline(lista).getBounds());
+</script>
 </body>
 </html>
