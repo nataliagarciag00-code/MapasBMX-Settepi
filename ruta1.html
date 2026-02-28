@@ -2,105 +2,98 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Ruta Oficial - Settepi</title>
+    <title>LOGISTICA - COLONIA MIRASOL (23 PARADAS)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --blue-s: #00529b; --yellow-s: #ffcb05; --bg: #f4f7f9; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .no-print { background: var(--blue-s); color: white; padding: 15px; display: flex; justify-content: space-between; border-radius: 10px; margin-bottom: 20px; border-bottom: 4px solid var(--yellow-s); }
-        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .header { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
-        .card { background: #e3f2fd; padding: 10px; border-radius: 8px; border-left: 4px solid var(--blue-s); }
-        .card b { display: block; font-size: 10px; color: #555; text-transform: uppercase; }
-        .card span { font-weight: bold; color: var(--blue-s); }
-        #map { height: 500px; width: 100%; border-radius: 10px; border: 1px solid #ccc; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        th { background: var(--blue-s); color: white; padding: 10px; text-align: left; }
+        :root { --blue-s: #00529b; --yellow-s: #ffcb05; --green-ex: #2d6a4f; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 12px; border-top: 8px solid var(--blue-s); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .header { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .info-box { background: #e3f2fd; padding: 10px; border-radius: 8px; border-left: 4px solid var(--yellow-s); }
+        .info-box b { font-size: 11px; color: var(--blue-s); display: block; text-transform: uppercase; }
+        .info-box span { font-weight: bold; font-size: 14px; }
+        #map { height: 400px; width: 100%; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ccc; }
+        .btn-ex { background: var(--green-ex); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; float: right; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: var(--blue-s); color: white; padding: 12px; text-align: left; }
         td { padding: 8px; border-bottom: 1px solid #eee; }
-        tr:nth-child(even) { background: #f9f9f9; }
-        .pin { background: var(--blue-s); color: white; border: 2px solid white; border-radius: 50%; text-align: center; font-size: 10px; font-weight: bold; line-height: 20px; }
-        @media print { .no-print { display: none; } .container { box-shadow: none; padding: 0; } }
+        tr:nth-child(even) { background: #f8fafc; }
     </style>
 </head>
 <body>
 
-<div class="no-print">
-    <b>LOGÍSTICA SETTEPI - RECORRIDO INFORMATIVO</b>
-    <button onclick="window.print()" style="cursor:pointer; font-weight:bold;">📄 GENERAR PDF</button>
-</div>
-
 <div class="container">
     <div class="header">
-        <div class="card"><b>Ruta</b><span>Col. Mirasol - San Fermín</span></div>
-        <div class="card"><b>Distancia</b><span>22.18 km</span></div>
-        <div class="card"><b>Tiempo</b><span>1h 28m</span></div>
-        <div class="card"><b>Paradas</b><span>23</span></div>
+        <div class="info-box"><b>Ruta</b><span>COLONIA MIRASOL</span></div>
+        <div class="info-box"><b>Unidad</b><span>16550</span></div>
+        <div class="info-box"><b>Cultivo</b><span>ARANDANO</span></div>
+        <div class="info-box"><b>Fecha</b><span>20/02/2026</span></div>
     </div>
 
     <div id="map"></div>
 
-    <table>
+    <button class="btn-ex" onclick="exportToExcel()">📊 EXPORTAR EXCEL</button>
+    <table id="target-table">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Referencia</th>
-                <th>Hora</th>
-                <th>T. Tramo</th>
-                <th>D. Acum</th>
-                <th>Coordenadas</th>
+                <th>#</th>
+                <th>PUNTO DE CONTROL</th>
+                <th>HORA (PST)</th>
+                <th>COORDENADAS</th>
             </tr>
         </thead>
-        <tbody id="tabla"></tbody>
+        <tbody id="tbody"></tbody>
     </table>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    const data = [
-        {id:1, n:"COLONIA MIRASOL", h:"05:30 AM", tt:"---", da:"0.00 km", lat:30.51156, lon:-115.96154},
-        {id:2, n:"PINOS MADRID 2", h:"05:37 AM", tt:"7m", da:"1.68 km", lat:30.51557, lon:-115.94462},
-        {id:3, n:"ESQUINA CECYTE", h:"05:40 AM", tt:"3m", da:"2.35 km", lat:30.51707, lon:-115.93782},
-        {id:4, n:"ESQUINA MIGES", h:"05:42 AM", tt:"2m", da:"2.60 km", lat:30.51763, lon:-115.93532},
-        {id:5, n:"BAHIA DEL ROSARIO", h:"05:43 AM", tt:"1m", da:"2.84 km", lat:30.51818, lon:-115.93294},
-        {id:6, n:"ESQUINA CHONTAL", h:"05:45 AM", tt:"2m", da:"3.08 km", lat:30.51875, lon:-115.93045},
-        {id:7, n:"CAPILLA JUAN PABLO", h:"05:54 AM", tt:"9m", da:"5.35 km", lat:30.50907, lon:-115.90968},
-        {id:8, n:"ESQ. CALLE CALAMAR", h:"05:56 AM", tt:"2m", da:"5.63 km", lat:30.50849, lon:-115.91259},
-        {id:9, n:"CALLE DEL ATUN", h:"05:57 AM", tt:"1m", da:"5.73 km", lat:30.50828, lon:-115.91357},
-        {id:10, n:"CANCHAS FUTBOL", h:"05:58 AM", tt:"2m", da:"5.97 km", lat:30.50770, lon:-115.91600},
-        {id:11, n:"MURAL BUDLIGHT", h:"06:02 AM", tt:"3m", da:"6.58 km", lat:30.50628, lon:-115.92217},
-        {id:12, n:"OXXO FRESERO", h:"06:03 AM", tt:"1m", da:"6.82 km", lat:30.50574, lon:-115.92454},
-        {id:13, n:"ENTRADA RANCHO SAN SIMON", h:"06:21 AM", tt:"18m", da:"17.10 km", lat:30.41640, lon:-115.89700},
-        {id:14, n:"BAJADA PERSONAL SKY", h:"06:24 AM", tt:"3m", da:"17.39 km", lat:30.41681, lon:-115.89401},
-        {id:15, n:"SAN SIMON ARÁNDANOS", h:"06:31 AM", tt:"7m", da:"18.78 km", lat:30.42810, lon:-115.90039},
-        {id:16, n:"BAJADA ARÁNDANOS", h:"06:35 AM", tt:"4m", da:"19.06 km", lat:30.42882, lon:-115.89761},
-        {id:17, n:"COMEDOR MISAEL", h:"06:42 AM", tt:"7m", da:"19.88 km", lat:30.42446, lon:-115.90453},
-        {id:18, n:"COMEDOR OLIVER", h:"06:44 AM", tt:"2m", da:"20.15 km", lat:30.42218, lon:-115.90378},
-        {id:19, n:"OFICINA YURAWE", h:"06:45 AM", tt:"1m", da:"20.31 km", lat:30.42172, lon:-115.90537},
-        {id:20, n:"COMEDOR BRYAN", h:"06:48 AM", tt:"3m", da:"20.87 km", lat:30.42041, lon:-115.91108},
-        {id:21, n:"COMEDOR NANCY", h:"06:50 AM", tt:"2m", da:"21.15 km", lat:30.41976, lon:-115.91390},
-        {id:22, n:"COMEDOR SANTIAGO", h:"06:53 AM", tt:"3m", da:"21.53 km", lat:30.42067, lon:-115.91767},
-        {id:23, n:"COMEDOR RENTERIA", h:"06:58 AM", tt:"5m", da:"22.18 km", lat:30.41635, lon:-115.92222}
+    const puntos = [
+        {n: "COLONIA MIRASOL", t: "05:30:28", c: [30.51156215,-115.96154268]},
+        {n: "PINOS MADRID 2", t: "05:37:18", c: [30.51557452,-115.94462134]},
+        {n: "ESQUINA CECYTE", t: "05:40:13", c: [30.51706821,-115.93781712]},
+        {n: "ESQUINA MIGES", t: "05:42:20", c: [30.51763421,-115.93531519]},
+        {n: "BAHIA DEL ROSARIO", t: "05:43:20", c: [30.51817675,-115.93294293]},
+        {n: "ESQUINA CHONTAL", t: "05:45:13", c: [30.5187502,-115.93044904]},
+        {n: "CALLE BALLENAS ESQUINA", t: "05:53:32", c: [30.50989392,-115.90940523]},
+        {n: "CAPILLA JUAN PABLO", t: "05:54:04", c: [30.50906763,-115.9096809]},
+        {n: "CALLE BALLENAS 2", t: "05:54:56", c: [30.5079822,-115.91037385]},
+        {n: "CALLE BALLENAS 3", t: "05:56:06", c: [30.50659718,-115.91143899]},
+        {n: "CALLE BALLENAS FINAL", t: "05:57:38", c: [30.50653018,-115.91428392]},
+        {n: "CANCHAS FUTBOL", t: "05:58:56", c: [30.50770181,-115.91600003]},
+        {n: "ESQUINA OXXO FRESERO", t: "06:03:32", c: [30.50573693,-115.92454279]},
+        {n: "ENTRADA SKY", t: "06:21:44", c: [30.416396,-115.89699837]},
+        {n: "BAJADA PERSONAL SAN SIMON", t: "06:31:34", c: [30.42810217,-115.9003925]},
+        {n: "BAJADA MISAEL", t: "06:33:04", c: [30.42823055,-115.90042456]},
+        {n: "BAJADA OLIVER", t: "06:34:55", c: [30.42837346,-115.90042456]},
+        {n: "BAJADA BRYAN", t: "06:36:20", c: [30.42851412,-115.90042456]},
+        {n: "BAJADA NANCY", t: "06:38:12", c: [30.42867018,-115.90042456]},
+        {n: "BAJADA COMEDOR SANTIAGO", t: "06:53:22", c: [30.42066749,-115.91766962]},
+        {n: "BAJADA COMEDOR 2", t: "06:55:04", c: [30.41922513,-115.91823621]},
+        {n: "BAJADA COMEDOR 3", t: "06:56:55", c: [30.41783421,-115.91924519]},
+        {n: "RICARDO RENTERIA", t: "06:58:41", c: [30.41634987,-115.92222]}
     ];
 
-    const map = L.map('map').setView([30.46, -115.93], 12);
-    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
-        subdomains:['mt0','mt1','mt2','mt3']
-    }).addTo(map);
+    const map = L.map('map').setView([30.46, -115.93], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    const lista = [];
-    const t = document.getElementById('tabla');
+    const routeLine = puntos.map(p => p.c);
+    L.polyline(routeLine, {color: '#00529b', weight: 4}).addTo(map);
 
-    data.forEach(p => {
-        t.innerHTML += `<tr><td>${p.id}</td><td>${p.n}</td><td><b>${p.h}</b></td><td>${p.tt}</td><td>${p.da}</td><td>${p.lat}, ${p.lon}</td></tr>`;
-        L.marker([p.lat, p.lon], {
-            icon: L.divIcon({ className: 'pin', html: p.id, iconSize: [20, 20] })
-        }).addTo(map);
-        lista.push([p.lat, p.lon]);
+    const tb = document.getElementById('tbody');
+    puntos.forEach((p, i) => {
+        L.marker(p.c).addTo(map).bindPopup(`<b>${p.n}</b><br>${p.t}`);
+        tb.innerHTML += `<tr><td>${i+1}</td><td>${p.n}</td><td>${p.t}</td><td>${p.c[0]}, ${p.c[1]}</td></tr>`;
     });
 
-    // Dibujo de polilínea que une los puntos
-    L.polyline(lista, {color: '#00529b', weight: 4}).addTo(map);
-    map.fitBounds(L.polyline(lista).getBounds());
+    function exportToExcel() {
+        let table = document.getElementById("target-table");
+        let html = `<html><meta charset="utf-8"><body>${table.outerHTML}</body></html>`;
+        let blob = new Blob([html], {type: "application/vnd.ms-excel"});
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement("a");
+        a.href = url; a.download = "Ruta_Mirasol_23_Paradas.xls"; a.click();
+    }
 </script>
 </body>
 </html>
