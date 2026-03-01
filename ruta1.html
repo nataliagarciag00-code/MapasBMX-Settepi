@@ -2,28 +2,29 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>LOGISTICA - COLONIA MIRASOL (23 PARADAS)</title>
+    <title>LOGISTICA - COLONIA MIRASOL</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --blue-s: #00529b; --yellow-s: #ffcb05; --green-ex: #2d6a4f; }
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 12px; border-top: 8px solid var(--blue-s); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .header { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .header-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
         .info-box { background: #e3f2fd; padding: 10px; border-radius: 8px; border-left: 4px solid var(--yellow-s); }
         .info-box b { font-size: 11px; color: var(--blue-s); display: block; text-transform: uppercase; }
         .info-box span { font-weight: bold; font-size: 14px; }
-        #map { height: 400px; width: 100%; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ccc; }
-        .btn-ex { background: var(--green-ex); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; float: right; margin-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { background: var(--blue-s); color: white; padding: 12px; text-align: left; }
-        td { padding: 8px; border-bottom: 1px solid #eee; }
+        #map { height: 400px; width: 100%; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ccc; z-index: 1; }
+        .btn-ex { background: var(--green-ex); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; float: right; margin-bottom: 15px; transition: 0.3s; }
+        .btn-ex:hover { background: #1b4332; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; clear: both; }
+        th { background: var(--blue-s); color: white; padding: 12px; text-align: left; border: 1px solid #ddd; }
+        td { padding: 10px; border: 1px solid #ddd; text-align: left; }
         tr:nth-child(even) { background: #f8fafc; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header">
+    <div class="header-grid">
         <div class="info-box"><b>Ruta</b><span>COLONIA MIRASOL</span></div>
         <div class="info-box"><b>Unidad</b><span>16550</span></div>
         <div class="info-box"><b>Cultivo</b><span>ARANDANO</span></div>
@@ -32,14 +33,15 @@
 
     <div id="map"></div>
 
-    <button class="btn-ex" onclick="exportToExcel()">📊 EXPORTAR EXCEL</button>
+    <button class="btn-ex" onclick="exportToExcel()">📊 EXPORTAR A EXCEL</button>
+    
     <table id="target-table">
         <thead>
             <tr>
-                <th>#</th>
-                <th>PUNTO DE CONTROL</th>
-                <th>HORA (PST)</th>
-                <th>COORDENADAS</th>
+                <th style="background-color: #00529b; color: white;">#</th>
+                <th style="background-color: #00529b; color: white;">PUNTO DE CONTROL</th>
+                <th style="background-color: #00529b; color: white;">HORA (PST)</th>
+                <th style="background-color: #00529b; color: white;">COORDENADAS</th>
             </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -74,26 +76,42 @@
         {n: "RICARDO RENTERIA", t: "06:58:41", c: [30.41634987,-115.92222]}
     ];
 
+    // Inicializar Mapa
     const map = L.map('map').setView([30.46, -115.93], 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    const routeLine = puntos.map(p => p.c);
-    L.polyline(routeLine, {color: '#00529b', weight: 4}).addTo(map);
+    // Dibujar línea de ruta
+    L.polyline(puntos.map(p => p.c), {color: '#00529b', weight: 4}).addTo(map);
 
     const tb = document.getElementById('tbody');
     puntos.forEach((p, i) => {
+        // Marcadores
         L.marker(p.c).addTo(map).bindPopup(`<b>${p.n}</b><br>${p.t}`);
-        tb.innerHTML += `<tr><td>${i+1}</td><td>${p.n}</td><td>${p.t}</td><td>${p.c[0]}, ${p.c[1]}</td></tr>`;
+        
+        // Llenar tabla
+        let row = tb.insertRow();
+        row.innerHTML = `<td>${i+1}</td><td>${p.n}</td><td>${p.t}</td><td>${p.c[0]}, ${p.c[1]}</td>`;
     });
 
     function exportToExcel() {
-        let table = document.getElementById("target-table");
-        let html = `<html><meta charset="utf-8"><body>${table.outerHTML}</body></html>`;
-        let blob = new Blob([html], {type: "application/vnd.ms-excel"});
-        let url = URL.createObjectURL(blob);
-        let a = document.createElement("a");
-        a.href = url; a.download = "Ruta_Mirasol_23_Paradas.xls"; a.click();
+        const table = document.getElementById("target-table");
+        const html = table.outerHTML;
+        
+        // Creamos un Blob con el contenido HTML y el tipo MIME de Excel
+        // Incluimos el BOM de UTF-8 para que Excel reconozca tildes y caracteres especiales
+        const blob = new Blob(['\ufeff', html], {
+            type: 'application/vnd.ms-excel'
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "Reporte_Mirasol_23Paradas.xls";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     }
 </script>
+
 </body>
 </html>
