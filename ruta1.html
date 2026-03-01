@@ -6,112 +6,110 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --blue-s: #00529b; --yellow-s: #ffcb05; --green-ex: #2d6a4f; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 12px; border-top: 8px solid var(--blue-s); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .header-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
-        .info-box { background: #e3f2fd; padding: 10px; border-radius: 8px; border-left: 4px solid var(--yellow-s); }
-        .info-box b { font-size: 11px; color: var(--blue-s); display: block; text-transform: uppercase; }
-        .info-box span { font-weight: bold; font-size: 14px; }
-        #map { height: 400px; width: 100%; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ccc; z-index: 1; }
-        .btn-ex { background: var(--green-ex); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; float: right; margin-bottom: 15px; transition: 0.3s; }
-        .btn-ex:hover { background: #1b4332; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; clear: both; }
-        th { background: var(--blue-s); color: white; padding: 12px; text-align: left; border: 1px solid #ddd; }
-        td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-        tr:nth-child(even) { background: #f8fafc; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-top: 5px solid var(--blue-s); }
+        .header-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; font-size: 14px; }
+        .info-item b { color: var(--blue-s); }
+        #map { height: 350px; width: 100%; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ccc; }
+        .btn-excel { background: var(--green-ex); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; float: right; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background-color: #00529b; color: white; padding: 10px; text-align: left; border: 1px solid #333; }
+        td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header-grid">
-        <div class="info-box"><b>Ruta</b><span>COLONIA MIRASOL</span></div>
-        <div class="info-box"><b>Unidad</b><span>16550</span></div>
-        <div class="info-box"><b>Cultivo</b><span>ARANDANO</span></div>
-        <div class="info-box"><b>Fecha</b><span>20/02/2026</span></div>
+    <div class="header-info">
+        <div><b>RUTA:</b> COLONIA MIRASOL - SAN SIMON</div>
+        <div><b>UNIDAD:</b> 16550</div>
+        <div><b>FECHA:</b> 20/02/2026</div>
+        <div><b>CULTIVO:</b> ARANDANO</div>
     </div>
 
     <div id="map"></div>
 
-    <button class="btn-ex" onclick="exportToExcel()">📊 EXPORTAR A EXCEL</button>
-    
-    <table id="target-table">
+    <button class="btn-excel" onclick="exportarExcel()">📊 EXPORTAR EXCEL (HH:MM)</button>
+
+    <table id="tabla-reporte">
         <thead>
             <tr>
-                <th style="background-color: #00529b; color: white;">#</th>
-                <th style="background-color: #00529b; color: white;">PUNTO DE CONTROL</th>
-                <th style="background-color: #00529b; color: white;">HORA (PST)</th>
-                <th style="background-color: #00529b; color: white;">COORDENADAS</th>
+                <th style="background-color: #00529b; color: white; border: 1px solid #000;">ID</th>
+                <th style="background-color: #00529b; color: white; border: 1px solid #000;">PUNTO DE CONTROL</th>
+                <th style="background-color: #00529b; color: white; border: 1px solid #000;">HORA (PST)</th>
+                <th style="background-color: #00529b; color: white; border: 1px solid #000;">LATITUD</th>
+                <th style="background-color: #00529b; color: white; border: 1px solid #000;">LONGITUD</th>
             </tr>
         </thead>
-        <tbody id="tbody"></tbody>
+        <tbody id="cuerpo-tabla"></tbody>
     </table>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     const puntos = [
-        {n: "COLONIA MIRASOL", t: "05:30:28", c: [30.51156215,-115.96154268]},
-        {n: "PINOS MADRID 2", t: "05:37:18", c: [30.51557452,-115.94462134]},
-        {n: "ESQUINA CECYTE", t: "05:40:13", c: [30.51706821,-115.93781712]},
-        {n: "ESQUINA MIGES", t: "05:42:20", c: [30.51763421,-115.93531519]},
-        {n: "BAHIA DEL ROSARIO", t: "05:43:20", c: [30.51817675,-115.93294293]},
-        {n: "ESQUINA CHONTAL", t: "05:45:13", c: [30.5187502,-115.93044904]},
-        {n: "CALLE BALLENAS ESQUINA", t: "05:53:32", c: [30.50989392,-115.90940523]},
-        {n: "CAPILLA JUAN PABLO", t: "05:54:04", c: [30.50906763,-115.9096809]},
-        {n: "CALLE BALLENAS 2", t: "05:54:56", c: [30.5079822,-115.91037385]},
-        {n: "CALLE BALLENAS 3", t: "05:56:06", c: [30.50659718,-115.91143899]},
-        {n: "CALLE BALLENAS FINAL", t: "05:57:38", c: [30.50653018,-115.91428392]},
-        {n: "CANCHAS FUTBOL", t: "05:58:56", c: [30.50770181,-115.91600003]},
-        {n: "ESQUINA OXXO FRESERO", t: "06:03:32", c: [30.50573693,-115.92454279]},
-        {n: "ENTRADA SKY", t: "06:21:44", c: [30.416396,-115.89699837]},
-        {n: "BAJADA PERSONAL SAN SIMON", t: "06:31:34", c: [30.42810217,-115.9003925]},
-        {n: "BAJADA MISAEL", t: "06:33:04", c: [30.42823055,-115.90042456]},
-        {n: "BAJADA OLIVER", t: "06:34:55", c: [30.42837346,-115.90042456]},
-        {n: "BAJADA BRYAN", t: "06:36:20", c: [30.42851412,-115.90042456]},
-        {n: "BAJADA NANCY", t: "06:38:12", c: [30.42867018,-115.90042456]},
-        {n: "BAJADA COMEDOR SANTIAGO", t: "06:53:22", c: [30.42066749,-115.91766962]},
-        {n: "BAJADA COMEDOR 2", t: "06:55:04", c: [30.41922513,-115.91823621]},
-        {n: "BAJADA COMEDOR 3", t: "06:56:55", c: [30.41783421,-115.91924519]},
-        {n: "RICARDO RENTERIA", t: "06:58:41", c: [30.41634987,-115.92222]}
+        {n: "COLONIA MIRASOL", t: "05:30", lat: 30.51156, lng: -115.96154},
+        {n: "PINOS MADRID 2", t: "05:37", lat: 30.51557, lng: -115.94462},
+        {n: "ESQUINA CECYTE", t: "05:40", lat: 30.51706, lng: -115.93781},
+        {n: "ESQUINA MIGES", t: "05:42", lat: 30.51763, lng: -115.93531},
+        {n: "BAHIA DEL ROSARIO", t: "05:43", lat: 30.51817, lng: -115.93294},
+        {n: "ESQUINA CHONTAL", t: "05:45", lat: 30.51875, lng: -115.93044},
+        {n: "CALLE BALLENAS ESQ", t: "05:53", lat: 30.50989, lng: -115.90940},
+        {n: "CAPILLA JUAN PABLO", t: "05:54", lat: 30.50906, lng: -115.90968},
+        {n: "CALLE BALLENAS 2", t: "05:54", lat: 30.50798, lng: -115.91037},
+        {n: "CALLE BALLENAS 3", t: "05:56", lat: 30.50659, lng: -115.91143},
+        {n: "CALLE BALLENAS FINAL", t: "05:57", lat: 30.50653, lng: -115.91428},
+        {n: "CANCHAS FUTBOL", t: "05:58", lat: 30.50770, lng: -115.91600},
+        {n: "ESQUINA OXXO FRESERO", t: "06:03", lat: 30.50573, lng: -115.92454},
+        {n: "ENTRADA SKY", t: "06:21", lat: 30.41639, lng: -115.89699},
+        {n: "BAJADA PERSONAL SAN SIMON", t: "06:31", lat: 30.42810, lng: -115.90039},
+        {n: "BAJADA MISAEL", t: "06:33", lat: 30.42823, lng: -115.90042},
+        {n: "BAJADA OLIVER", t: "06:34", lat: 30.42837, lng: -115.90042},
+        {n: "BAJADA BRYAN", t: "06:36", lat: 30.42851, lng: -115.90042},
+        {n: "BAJADA NANCY", t: "06:38", lat: 30.42867, lng: -115.90042},
+        {n: "BAJADA COMEDOR SANTIAGO", t: "06:53", lat: 30.42066, lng: -115.91766},
+        {n: "BAJADA COMEDOR 2", t: "06:55", lat: 30.41922, lng: -115.91823},
+        {n: "BAJADA COMEDOR 3", t: "06:56", lat: 30.41783, lng: -115.91924},
+        {n: "RICARDO RENTERIA", t: "06:58", lat: 30.41634, lng: -115.92222}
     ];
 
-    // Inicializar Mapa
-    const map = L.map('map').setView([30.46, -115.93], 11);
+    const map = L.map('map').setView([30.48, -115.93], 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    L.polyline(puntos.map(p => [p.lat, p.lng]), {color: '#00529b', weight: 4}).addTo(map);
 
-    // Dibujar línea de ruta
-    L.polyline(puntos.map(p => p.c), {color: '#00529b', weight: 4}).addTo(map);
-
-    const tb = document.getElementById('tbody');
+    const tabla = document.getElementById('cuerpo-tabla');
     puntos.forEach((p, i) => {
-        // Marcadores
-        L.marker(p.c).addTo(map).bindPopup(`<b>${p.n}</b><br>${p.t}`);
-        
-        // Llenar tabla
-        let row = tb.insertRow();
-        row.innerHTML = `<td>${i+1}</td><td>${p.n}</td><td>${p.t}</td><td>${p.c[0]}, ${p.c[1]}</td>`;
+        L.marker([p.lat, p.lng]).addTo(map).bindPopup(`${p.n} | ${p.t}`);
+        tabla.innerHTML += `<tr>
+            <td>${i+1}</td>
+            <td>${p.n}</td>
+            <td style="text-align:center;">${p.t}</td>
+            <td>${p.lat}</td>
+            <td>${p.lng}</td>
+        </tr>`;
     });
 
-    function exportToExcel() {
-        const table = document.getElementById("target-table");
-        const html = table.outerHTML;
+    function exportarExcel() {
+        const table = document.getElementById("tabla-reporte");
+        const html = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+            <head><meta charset="utf-8">
+            <style>
+                td { border: 0.5pt solid #000; }
+                th { background-color: #00529b; color: #ffffff; border: 0.5pt solid #000; }
+            </style>
+            </head>
+            <body>${table.outerHTML}</body>
+            </html>`;
         
-        // Creamos un Blob con el contenido HTML y el tipo MIME de Excel
-        // Incluimos el BOM de UTF-8 para que Excel reconozca tildes y caracteres especiales
-        const blob = new Blob(['\ufeff', html], {
-            type: 'application/vnd.ms-excel'
-        });
-        
+        const blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "Reporte_Mirasol_23Paradas.xls";
-        document.body.appendChild(a);
+        a.download = "LOGISTICA_MIRASOL_16550.xls";
         a.click();
-        document.body.removeChild(a);
     }
 </script>
-
 </body>
 </html>
